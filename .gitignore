@@ -1,15 +1,20 @@
 ﻿# Environment
 .env
+settings.json
+toolbox.log
 
 # Python cache
 __pycache__/
 *.py[cod]
+*.pyo
 *.class
 .pytest_cache/
+*.egg-info/
 
 # Build output
 build/
 dist/
+outputs/
 *.spec
 
 # IDE
@@ -20,11 +25,7 @@ dist/
 Thumbs.db
 .DS_Store
 
-# App data (contains API keys / logs)
-settings.json
-toolbox.log
-
-# Dev scripts (one-off migration/fix scripts)
+# Dev scripts
 add_logging.py
 add_traceback.py
 _fix_custom.py
@@ -33,6 +34,3 @@ _fix_custom.py
 backups/
 work/
 *.html
-
-# Installer output
-outputs/

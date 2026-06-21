@@ -1,0 +1,199 @@
+﻿import time
+from typing import Protocol
+
+from openai import OpenAI
+
+from file_toolbox.config import AppConfig
+from file_toolbox.languages import LANGUAGES
+
+
+class Translator(Protocol):
+    def translate(
+        self,
+        text: str,
+        target_language: str = "English",
+        source_language: str = "Auto-detect",
+    ) -> str:
+        ...
+
+
+def chunk_text(text: str, max_chars: int = 3500) -> list[str]:
+    paragraphs = [part.strip() for part in text.split("\n\n") if part.strip()]
+    chunks: list[str] = []
+    current = ""
+    for paragraph in paragraphs:
+        if len(paragraph) > max_chars:
+            if current:
+                chunks.append(current)
+                current = ""
+            chunks.extend(
+                paragraph[start : start + max_chars]
+                for start in range(0, len(paragraph), max_chars)
+            )
+            continue
+        candidate = paragraph if not current else f"{current}\n{paragraph}"
+        if len(candidate) <= max_chars:
+            current = candidate
+        else:
+            if current:
+                chunks.append(current)
+            current = paragraph
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def _prompt_name_to_code(prompt_name: str) -> str:
+    for lang in LANGUAGES.values():
+        if lang.prompt_name == prompt_name:
+            return lang.code
+    return "auto"
+
+
+def _map_google_code(code: str) -> str:
+    _CODE_MAP = {"zh": "zh-CN", "auto": "auto"}
+    return _CODE_MAP.get(code, code)
+
+
+def _map_mymemory_code(code: str) -> str:
+    _MAP = {"zh": "zh-CN", "en": "en-GB", "ja": "ja-JP", "ko": "ko-KR",
+            "fr": "fr-FR", "de": "de-DE", "es": "es-ES", "it": "it-IT",
+            "pt": "pt-PT", "ru": "ru-RU", "ar": "ar-SA", "auto": "en-GB"}
+    return _MAP.get(code, code)
+
+
+def _retry_translate(translator_fn, text: str, max_attempts: int = 3, delay: float = 1.5) -> str:
+    last_error = None
+    for attempt in range(max_attempts):
+        try:
+            return translator_fn(text)
+        except Exception as e:
+            last_error = e
+            if attempt < max_attempts - 1:
+                time.sleep(delay * (attempt + 1))
+    raise RuntimeError(str(last_error)) from last_error
+
+
+class _BaseFreeTranslator:
+    """Base class for free web translators with automatic chunking and retry."""
+    max_chars: int = 4000
+
+    def _make_translator(self, source: str, target: str):
+        raise NotImplementedError
+
+    def translate(
+        self,
+        text: str,
+        target_language: str = "English",
+        source_language: str = "Auto-detect",
+    ) -> str:
+        if not text.strip():
+            return text
+        source_code = _prompt_name_to_code(source_language)
+        target_code = _prompt_name_to_code(target_language)
+        translator = self._make_translator(source_code, target_code)
+
+        def _do_translate(t: str) -> str:
+            if len(t) > self.max_chars:
+                parts = [translator.translate(chunk) for chunk in chunk_text(t, max_chars=self.max_chars)]
+                return "\n\n".join(parts)
+            return translator.translate(t)
+
+        return _retry_translate(_do_translate, text, max_attempts=3, delay=1.5)
+
+
+class GoogleFreeTranslator(_BaseFreeTranslator):
+    """Free translation via Google Translate. No API key needed."""
+
+    def _make_translator(self, source_code: str, target_code: str):
+        from deep_translator import GoogleTranslator
+        return GoogleTranslator(
+            source=_map_google_code(source_code),
+            target=_map_google_code(target_code),
+        )
+
+
+class MyMemoryFreeTranslator(_BaseFreeTranslator):
+    """Free translation via MyMemory. No API key needed."""
+
+    def _make_translator(self, source_code: str, target_code: str):
+        from deep_translator import MyMemoryTranslator
+        mymemory_source = "en" if source_code == "auto" else source_code
+        return MyMemoryTranslator(
+            source=_map_mymemory_code(mymemory_source),
+            target=_map_mymemory_code(target_code),
+        )
+
+
+class PonsFreeTranslator(_BaseFreeTranslator):
+    """Free translation via Pons. No API key needed."""
+
+    max_chars = 400
+
+    _PONS_CODE_MAP = {
+        "zh-cn": "zh-cn", "zh": "zh-cn", "en": "en", "ja": "ja",
+        "fr": "fr", "de": "de", "es": "es", "it": "it",
+        "pt": "pt", "ru": "ru", "nl": "nl", "ar": "ar",
+        "tr": "tr", "pl": "pl", "cs": "cs", "da": "da",
+        "el": "el", "hu": "hu", "no": "no", "sv": "sv",
+    }
+
+    def _make_translator(self, source_code: str, target_code: str):
+        from deep_translator import PonsTranslator
+        pons_source = "en" if source_code == "auto" else source_code
+        src = self._PONS_CODE_MAP.get(pons_source, pons_source)
+        tgt = self._PONS_CODE_MAP.get(target_code, target_code)
+        return PonsTranslator(source=src, target=tgt)
+
+
+class DeepSeekTranslator:
+    def __init__(self, config: AppConfig):
+        self._config = config
+        self._client = OpenAI(api_key=config.api_key, base_url=config.base_url)
+        self._max_chars = 3500
+        self._max_attempts = 3
+        self._delay = 1.5
+
+    def translate(
+        self,
+        text: str,
+        target_language: str = "English",
+        source_language: str = "Auto-detect",
+    ) -> str:
+        if not text.strip():
+            return text
+
+        source_instruction = (
+            "Detect the source language automatically."
+            if source_language == "Auto-detect"
+            else f"The source language is {source_language}."
+        )
+
+        def _do_translate(t: str) -> str:
+            """Translate a single chunk (or full text if short enough)."""
+            response = self._client.chat.completions.create(
+                model=self._config.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            f"{source_instruction} "
+                            f"Translate the user text into clear professional {target_language}. "
+                            "Preserve names, numbers, product codes, and formatting markers."
+                        ),
+                    },
+                    {"role": "user", "content": t},
+                ],
+                temperature=0.2,
+            )
+            return response.choices[0].message.content or ""
+
+        if len(text) > self._max_chars:
+            chunks = chunk_text(text, max_chars=self._max_chars)
+            translated_chunks = []
+            for chunk in chunks:
+                result = _retry_translate(_do_translate, chunk, self._max_attempts, self._delay)
+                translated_chunks.append(result)
+            return "\n\n".join(translated_chunks)
+
+        return _retry_translate(_do_translate, text, self._max_attempts, self._delay)

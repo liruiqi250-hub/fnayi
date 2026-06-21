@@ -1,0 +1,38 @@
+﻿# Environment
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+
+# Build output
+build/
+dist/
+*.spec
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# App data (contains API keys / logs)
+settings.json
+toolbox.log
+
+# Dev scripts (one-off migration/fix scripts)
+add_logging.py
+add_traceback.py
+_fix_custom.py
+
+# Scratch files
+backups/
+work/
+*.html
+
+# Installer output
+outputs/

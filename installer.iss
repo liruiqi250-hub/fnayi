@@ -1,7 +1,7 @@
 ﻿; 文件翻译工具箱 Installer
 #define MyAppName "文件翻译工具箱"
 #define MyAppDirName "FileTranslator"
-#define MyAppVersion "1.3.1"
+#define MyAppVersion "1.3.2"
 #define MyAppPublisher "Codex"
 #define MyAppExeName "FileTranslator.exe"
 #define ProjectRoot "D:\360MoveData\Users\ASUS\Desktop\deepseek-api-deepseek-api"

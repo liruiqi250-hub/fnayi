@@ -30,6 +30,7 @@ from file_toolbox.config import AppConfig, ConfigError, load_config
 SETTINGS_DIR = Path(os.environ.get("APPDATA", Path.home() / ".config")) / "FileTranslator"
 SETTINGS_FILE = SETTINGS_DIR / "settings.json"
 LOG_FILE = SETTINGS_DIR / "toolbox.log"
+SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 @dataclass

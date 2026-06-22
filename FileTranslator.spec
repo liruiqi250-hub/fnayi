@@ -1,21 +1,32 @@
-# -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
+﻿# -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, collect_submodules
 
 hiddenimports = [
     "openpyxl", "openpyxl.cell._writer", "docx", "pypdf", "olefile",
     "deep_translator", "dotenv", "openai", "httpx", "httpcore",
     "PySide6.QtCore", "PySide6.QtWidgets", "PySide6.QtGui",
 ]
+hiddenimports += collect_submodules("file_toolbox")
+hiddenimports += collect_submodules("file_toolbox.processors")
+hiddenimports += ["file_toolbox.processors.txt"]
 
 # Collect PySide6 data and binaries, then filter
 datas = collect_data_files("PySide6", include_py_files=True)
 binaries = collect_dynamic_libs("PySide6")
 
-# Include QR code image
-datas += [("src/file_toolbox/wechat_qr.jpg", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\config.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\gui.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\languages.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\main.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\reporting.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\settings.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\translator.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\updater.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\wechat_qr.jpg", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\__init__.py", "file_toolbox")]
 
 BAD = [
-    "api-ms-win",
+    
     "qt6qml", "qt6quick", "qt63d", "qt6charts",
     "qt6datavisualization", "qt6designer", "qt6graph",
     "qt6help", "qt6httpserver", "qt6location", "qt6lottie",
@@ -53,9 +64,27 @@ def keep(path):
 datas = [(s, d) for (s, d) in datas if keep(s)]
 binaries = [(s, d) for (s, d) in binaries if keep(s)]
 
+
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\config.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\gui.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\languages.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\main.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\reporting.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\settings.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\translator.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\updater.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\wechat_qr.jpg", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\__init__.py", "file_toolbox")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\processors\excel.py", "file_toolbox/processors")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\processors\organizer.py", "file_toolbox/processors")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\processors\pdf.py", "file_toolbox/processors")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\processors\txt.py", "file_toolbox/processors")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\processors\word.py", "file_toolbox/processors")]
+datas += [(r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src\file_toolbox\processors\__init__.py", "file_toolbox/processors")]
+
 a = Analysis(
     ["src/file_toolbox/main.py"],
-    pathex=["src"],
+    pathex=[r"D:\360MoveData\Users\ASUS\Desktop\文件翻译工具箱 v1.3.2\src"],
     binaries=binaries, datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[], hooksconfig={}, runtime_hooks=[],
@@ -71,7 +100,7 @@ exe = EXE(
     target_arch=None, codesign_identity=None, entitlements_file=None,
 )
 _exclusions = [
-    "api-ms-win",
+    
     "ucrtbase.dll",
     
     "qt6qml", "qt6quick", "qt63d", "qt6charts",
@@ -113,3 +142,4 @@ coll = COLLECT(
     exe, _filtered_bins, _filtered_datas,
     strip=False, upx=True, upx_exclude=[], name="FileTranslator",
 )
+

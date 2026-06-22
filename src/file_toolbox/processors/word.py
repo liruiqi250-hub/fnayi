@@ -13,7 +13,7 @@ DRAWING_TAG = qn("w:drawing")
 
 
 def _is_docx(path: Path) -> bool:
-    return path.suffix.lower() == ".docx"
+    return path.suffix.lower() in (".docx", ".docm")
 
 
 def _read_doc_text_via_ole(path: Path) -> str:
@@ -164,3 +164,4 @@ def translate_docx_to_language(
                 progress_callback(idx, total)
         document.save(output)
     return output
+

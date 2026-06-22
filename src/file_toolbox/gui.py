@@ -32,6 +32,7 @@ from file_toolbox.processors.excel import translate_xlsx_to_language
 from file_toolbox.processors.pdf import PdfTextError, translate_pdf_text_to_language
 from file_toolbox.processors.word import translate_docx_to_language
 from file_toolbox.processors.organizer import organize_folder
+from file_toolbox.processors.txt import translate_txt_to_language
 from file_toolbox.reporting import ProcessResult, write_report
 from file_toolbox.translator import DeepSeekTranslator, GoogleFreeTranslator, MyMemoryFreeTranslator
 from file_toolbox.settings import AppSettings, SettingsDialog, load_settings, resolve_api_config
@@ -49,11 +50,12 @@ class ToolOption:
 
 
 TOOLS = [
-    ToolOption("word", "Word 翻译", "选择多个 Word 文件，输出翻译后的 Word 文档。", "选择 Word 文件", "Word 文件 (*.doc *.docx)", True),
-    ToolOption("excel", "Excel 翻译/整理", "选择多个 Excel 文件，输出翻译后的 Excel 文档。", "选择 Excel 文件", "Excel 文件 (*.xlsx *.xlsm)", True),
+    ToolOption("word", "Word 翻译", "选择多个 Word 文件，输出翻译后的 Word 文档。", "选择 Word 文件", "Word 文件 (*.doc *.docx *.docm *.dotx *.dotm *.rtf)", True),
+    ToolOption("excel", "Excel 翻译/整理", "选择多个 Excel 文件，输出翻译后的 Excel 文档。", "选择 Excel 文件", "Excel 文件 (*.xlsx *.xlsm *.xltx *.xltm *.xls *.csv)", True),
     ToolOption("pdf", "PDF 转文本/翻译", "选择多个文字型 PDF，输出翻译后的 Word 文档。", "选择 PDF 文件", "PDF 文件 (*.pdf)", True),
     ToolOption("organizer", "文件整理", "按类型自动分类整理文件到不同文件夹。", "选择文件夹", None, False),
     ToolOption("text", "文本翻译", "粘贴文字并翻译，支持多种翻译引擎。", "", None, True, True),
+    ToolOption("txt", "TXT 翻译", "选择多个 TXT 文件，输出翻译后的 TXT 文档。", "选择 TXT 文件", "文本文件 (*.txt)", True),
 ]
 
 
@@ -78,14 +80,18 @@ _PROCESSOR_DISPATCH = {
     "pdf": lambda path, translator, src_lang, tgt_lang, suffix, cb:
         translate_pdf_text_to_language(path, path.parent / "translated", translator,
             target_language=tgt_lang, source_language=src_lang, target_suffix=suffix, progress_callback=cb),
+    "txt": lambda path, translator, src_lang, tgt_lang, suffix, cb:
+        translate_txt_to_language(path, path.parent / "translated", translator,
+            target_language=tgt_lang, source_language=src_lang, target_suffix=suffix, progress_callback=cb),
 }
 
 _TOOL_EXTENSIONS = {
-    "word": {".doc", ".docx"},
-    "excel": {".xlsx", ".xlsm"},
+    "word": {".doc", ".docx", ".docm", ".dotx", ".dotm", ".rtf"},
+    "excel": {".xlsx", ".xlsm", ".xltx", ".xltm", ".xls", ".csv"},
     "pdf": {".pdf"},
     "organizer": set(),
     "text": set(),
+    "txt": {".txt"},
 }
 
 
@@ -813,6 +819,8 @@ class MainWindow(QMainWindow):
             self.target_combo.addItem(lang.label, code)
         self.target_combo.setCurrentIndex(1)
         lang_row.addWidget(self.target_combo, 1)
+        # 初始化时根据默认引擎更新源语言选项
+        self._update_source_combo_for_engine(self.engine_combo.currentData())
         tpanel.addLayout(lang_row)
         content.addWidget(self.translation_panel, 1)
 
@@ -1018,6 +1026,7 @@ class MainWindow(QMainWindow):
 
     def _engine_changed(self, idx):
         code = self.engine_combo.itemData(idx)
+        self._update_source_combo_for_engine(code)
         if code == "google" and not self.settings.google_vpn_warned:
             QMessageBox.information(
                 self, "注意",
@@ -1032,8 +1041,32 @@ class MainWindow(QMainWindow):
                 "使用自定义大模型需要先配置 API Key，是否前往设置？",
                 QMessageBox.Yes | QMessageBox.No,
             )
-            if reply == QMessageBox.Yes:
-                self._open_settings()
+
+    def _update_source_combo_for_engine(self, engine_code: str):
+        """根据翻译引擎显示/隐藏源语言中的"自动识别"选项。"""
+        no_auto_engines = {"mymemory"}
+        current_data = self.source_combo.currentData()
+        self.source_combo.blockSignals(True)
+        self.source_combo.clear()
+        if engine_code in no_auto_engines:
+            # 不支持自动检测，只显示具体语言
+            for code, lang in LANGUAGES.items():
+                if code != "auto":
+                    self.source_combo.addItem(lang.label, code)
+        else:
+            # 支持自动检测，显示全部选项
+            for code, lang in LANGUAGES.items():
+                self.source_combo.addItem(lang.label, code)
+        # 恢复之前选中的语言（如果是 auto 且不支持，则默认选中文）
+        idx = self.source_combo.findData(current_data)
+        if idx >= 0:
+            self.source_combo.setCurrentIndex(idx)
+        else:
+            # auto 不可用时，默认选中文
+            zh_idx = self.source_combo.findData("zh")
+            if zh_idx >= 0:
+                self.source_combo.setCurrentIndex(zh_idx)
+        self.source_combo.blockSignals(False)
 
     def _swap_languages(self):
         src_code = self.source_combo.currentData()
@@ -1159,7 +1192,7 @@ class MainWindow(QMainWindow):
     def dropEvent(self, event):
         paths = [Path(u.toLocalFile()) for u in event.mimeData().urls()]
         ext = paths[0].suffix.lower() if paths else ""
-        tool_map = {"word": {".doc", ".docx"}, "excel": {".xlsx", ".xlsm"}, "pdf": {".pdf"}}
+        tool_map = {k: set(v) for k, v in _TOOL_EXTENSIONS.items() if v}
         matched_tool = None
         for tool_key, exts in tool_map.items():
             if ext in exts:
@@ -1337,6 +1370,8 @@ def run_app():
     window = MainWindow(app)
     window.show()
     sys.exit(app.exec())
+
+
 
 
 

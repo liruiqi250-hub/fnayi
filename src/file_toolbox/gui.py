@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+﻿from dataclasses import dataclass
 from pathlib import Path
 import sys
 import logging
@@ -6,6 +6,7 @@ import traceback
 import subprocess
 
 from PySide6.QtCore import QThread, Signal
+from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -32,7 +33,7 @@ from file_toolbox.processors.pdf import PdfTextError, translate_pdf_text_to_lang
 from file_toolbox.processors.word import translate_docx_to_language
 from file_toolbox.processors.organizer import organize_folder
 from file_toolbox.reporting import ProcessResult, write_report
-from file_toolbox.translator import DeepSeekTranslator, GoogleFreeTranslator, MyMemoryFreeTranslator, PonsFreeTranslator
+from file_toolbox.translator import DeepSeekTranslator, GoogleFreeTranslator, MyMemoryFreeTranslator
 from file_toolbox.settings import AppSettings, SettingsDialog, load_settings, resolve_api_config
 
 
@@ -59,14 +60,12 @@ TOOLS = [
 ENGINES = [
     ("google", "Google 翻译 (免费，无需 Key)"),
     ("mymemory", "MyMemory 翻译 (免费，无需 Key)"),
-    ("pons", "Pons 翻译 (免费，无需 Key)"),
     ("custom", "自定义大模型 (需 API Key)"),
 ]
 
 _TRANSLATOR_BUILDERS = {
     "google": lambda _s: GoogleFreeTranslator(),
     "mymemory": lambda _s: MyMemoryFreeTranslator(),
-    "pons": lambda _s: PonsFreeTranslator(),
     }
 
 _PROCESSOR_DISPATCH = {
@@ -224,6 +223,103 @@ QPushButton#theme_button {
 }
 QPushButton#theme_button:hover {
     color: #0f172a;
+}
+QPushButton#save_word_btn {
+    background-color: #22c55e;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+QPushButton#save_word_btn:hover {
+    background-color: #16a34a;
+}
+QPushButton#stop_button {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+}
+QPushButton#stop_button:hover {
+    background-color: #dc2626;
+}
+QPushButton#stop_button:disabled {
+    background-color: #fca5a5;
+}
+QPushButton#text_translate_btn {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+}
+QPushButton#text_translate_btn:hover {
+    background-color: #1d4ed8;
+}
+QPushButton#clear_input_btn, QPushButton#copy_output_btn, QPushButton#swap_back_btn {
+    background-color: #e2e8f0;
+    color: #1e293b;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+QPushButton#clear_input_btn:hover, QPushButton#copy_output_btn:hover, QPushButton#swap_back_btn:hover {
+    background-color: #cbd5e1;
+}
+QDialog QLabel {
+    color: #0f172a;
+}
+QDialog QLineEdit {
+    color: #0f172a;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+QDialog QComboBox {
+    color: #0f172a;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+QDialog QSpinBox {
+    color: #0f172a;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 4px;
+}
+QDialog QCheckBox {
+    color: #0f172a;
+}
+QDialog QPushButton {
+    color: #ffffff;
+    background-color: #2563eb;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+QDialog QTabBar::tab {
+    color: #0f172a;
+    background-color: #f1f5f9;
+    padding: 6px 16px;
+    border: 1px solid #e2e8f0;
+    border-bottom: none;
+}
+QDialog QTabBar::tab:selected {
+    background-color: #ffffff;
+}
+QGroupBox#feedback_group {
+    color: #0f172a;
 }"""
 
 STYLESHEET_DARK = """QMainWindow {
@@ -357,12 +453,121 @@ QPushButton#theme_button {
 }
 QPushButton#theme_button:hover {
     color: #ffffff;
+}
+QPushButton#save_word_btn {
+    background-color: #22c55e;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+QPushButton#save_word_btn:hover {
+    background-color: #16a34a;
+}
+QPushButton#save_word_btn {
+    background-color: #16a34a;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+QPushButton#save_word_btn:hover {
+    background-color: #15803d;
+}
+QPushButton#stop_button {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+}
+QPushButton#stop_button:hover {
+    background-color: #dc2626;
+}
+QPushButton#stop_button:disabled {
+    background-color: #7f1d1d;
+}
+QPushButton#text_translate_btn {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+}
+QPushButton#text_translate_btn:hover {
+    background-color: #2563eb;
+}
+QPushButton#clear_input_btn, QPushButton#copy_output_btn, QPushButton#swap_back_btn {
+    background-color: #334155;
+    color: #e2e8f0;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+QPushButton#clear_input_btn:hover, QPushButton#copy_output_btn:hover, QPushButton#swap_back_btn:hover {
+    background-color: #475569;
+}
+QDialog QLabel {
+    color: #e2e8f0;
+}
+QDialog QLineEdit {
+    color: #e2e8f0;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+QDialog QComboBox {
+    color: #e2e8f0;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+QDialog QSpinBox {
+    color: #e2e8f0;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 4px;
+}
+QDialog QCheckBox {
+    color: #e2e8f0;
+}
+QDialog QPushButton {
+    color: #ffffff;
+    background-color: #3b82f6;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+QDialog QTabBar::tab {
+    color: #e2e8f0;
+    background-color: #0f172a;
+    padding: 6px 16px;
+    border: 1px solid #334155;
+    border-bottom: none;
+}
+QDialog QTabBar::tab:selected {
+    background-color: #1e293b;
+}
+QGroupBox#feedback_group {
+    color: #e2e8f0;
 }"""
 
 
 class TextTranslationWorker(QThread):
     finished = Signal(str)
     failed = Signal(str)
+    progress = Signal(str)
 
     def __init__(self, text, source_lang, target_lang, engine, settings):
         super().__init__()
@@ -480,7 +685,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._app = app
         self.setWindowTitle("文件翻译工具箱")
-        self.setMinimumSize(760, 560)
+        self.setMinimumSize(880, 660)
         self.settings = load_settings()
         self.paths: list[Path] = []
         self.worker: Worker | None = None
@@ -488,6 +693,11 @@ class MainWindow(QMainWindow):
         self._current_theme = self.settings.theme
         self._build_ui()
         self._apply_theme()
+        from file_toolbox.updater import check_for_update
+        check_for_update(self, repo=self.settings.github_repo, silent=True)
+        self.text_input.textChanged.connect(self._update_char_count)
+        self.text_input_shortcut = QShortcut(QKeySequence("Ctrl+Return"), self)
+        self.text_input_shortcut.activated.connect(self._trigger_text_translate)
 
     @staticmethod
     def _detect_system_theme() -> str:
@@ -604,7 +814,7 @@ class MainWindow(QMainWindow):
         self.target_combo.setCurrentIndex(1)
         lang_row.addWidget(self.target_combo, 1)
         tpanel.addLayout(lang_row)
-        content.addWidget(self.translation_panel)
+        content.addWidget(self.translation_panel, 1)
 
         # --- Organizer options ---
         self.organizer_panel = QWidget()
@@ -623,7 +833,7 @@ class MainWindow(QMainWindow):
         fpanel.addWidget(QLabel("已选择："))
         self.selected = QTextEdit()
         self.selected.setReadOnly(True)
-        self.selected.setMaximumHeight(100)
+        self.selected.setMinimumHeight(60)
         fpanel.addWidget(self.selected)
 
         action_row = QHBoxLayout()
@@ -639,31 +849,92 @@ class MainWindow(QMainWindow):
         self.start_button = QPushButton("开始处理")
         self.start_button.clicked.connect(self._start)
         start_row.addWidget(self.start_button)
+        self.stop_button = QPushButton("停止")
+        self.stop_button.setObjectName("stop_button")
+        self.stop_button.setVisible(False)
+        self.stop_button.clicked.connect(self._stop_processing)
+        start_row.addWidget(self.stop_button)
         fpanel.addLayout(start_row)
 
-        content.addWidget(self.file_section)
+        content.addWidget(self.file_section, 1)
 
         # --- Text translation panel ---
         self.text_panel = QWidget()
         txl = QVBoxLayout(self.text_panel)
         txl.setContentsMargins(0, 0, 0, 0)
+        txl.setSpacing(6)
 
-        txl.addWidget(QLabel("原文："))
+        # Input section
+        input_header = QHBoxLayout()
+        input_title = QLabel("原文")
+        input_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #475569;")
+        input_header.addWidget(input_title)
+        input_header.addStretch()
+        self.char_count_label = QLabel("字数: 0")
+        self.char_count_label.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        input_header.addWidget(self.char_count_label)
+        txl.addLayout(input_header)
+
         self.text_input = QTextEdit()
-        self.text_input.setPlaceholderText("在此粘贴要翻译的文字...")
-        self.text_input.setMinimumHeight(120)
-        txl.addWidget(self.text_input)
+        self.text_input.setPlaceholderText("在此输入或粘贴要翻译的文字...")
+        self.text_input.setMinimumHeight(100)
+        txl.addWidget(self.text_input, 1)
 
-        self.text_translate_btn = QPushButton("翻 译")
+        self.clear_input_btn = QPushButton("清空原文")
+        self.clear_input_btn.setObjectName("clear_input_btn")
+        self.clear_input_btn.setFixedWidth(90)
+        self.clear_input_btn.clicked.connect(self._clear_text_input)
+        # Align right
+        clear_row = QHBoxLayout()
+        clear_row.addStretch()
+        clear_row.addWidget(self.clear_input_btn)
+        txl.addLayout(clear_row)
+
+        # Translate button (centered, prominent)
+        translate_center = QHBoxLayout()
+        translate_center.addStretch()
+        self.text_translate_btn = QPushButton("翻  译")
+        self.text_translate_btn.setObjectName("text_translate_btn")
+        self.text_translate_btn.setMinimumWidth(200)
+        self.text_translate_btn.setMinimumHeight(42)
         self.text_translate_btn.clicked.connect(self._toggle_text_translate)
-        txl.addWidget(self.text_translate_btn)
-        # Stop button is shared via self.stop_button (in file_section)
+        translate_center.addWidget(self.text_translate_btn)
+        translate_center.addStretch()
+        txl.addLayout(translate_center)
 
-        txl.addWidget(QLabel("译文："))
+        # Output section
+        output_header = QHBoxLayout()
+        output_title = QLabel("译文")
+        output_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #475569;")
+        output_header.addWidget(output_title)
+        output_header.addStretch()
+        txl.addLayout(output_header)
+
         self.text_output = QTextEdit()
-        self.text_output.setReadOnly(True)
-        self.text_output.setMinimumHeight(120)
-        txl.addWidget(self.text_output)
+        self.text_output.setMinimumHeight(100)
+        self.text_output.setPlaceholderText("翻译结果将显示在这里...")
+        txl.addWidget(self.text_output, 1)
+
+        # Output actions
+        output_actions = QHBoxLayout()
+        self.copy_output_btn = QPushButton("复制译文")
+        self.copy_output_btn.setObjectName("copy_output_btn")
+        self.copy_output_btn.setFixedWidth(100)
+        self.copy_output_btn.clicked.connect(self._copy_text_output)
+        output_actions.addWidget(self.copy_output_btn)
+        self.save_word_btn = QPushButton("保存Word")
+        self.save_word_btn.setObjectName("save_word_btn")
+        self.save_word_btn.setFixedWidth(100)
+        self.save_word_btn.clicked.connect(self._save_text_as_word)
+        output_actions.addWidget(self.save_word_btn)
+        output_actions.addStretch()
+        self.swap_back_btn = QPushButton("↑↓ 互换翻译")
+        self.swap_back_btn.setObjectName("swap_back_btn")
+        self.swap_back_btn.setFixedWidth(120)
+        self.swap_back_btn.clicked.connect(self._swap_text_back)
+        output_actions.addWidget(self.swap_back_btn)
+        txl.addLayout(output_actions)
+
         content.addWidget(self.text_panel)
         self.text_panel.setVisible(False)
 
@@ -731,10 +1002,14 @@ class MainWindow(QMainWindow):
             self.worker.stop()
             self.worker.quit()
             self.worker.wait(500)
+            self.start_button.setVisible(True)
+            self.stop_button.setVisible(False)
         if self.text_worker is not None and self.text_worker.isRunning():
             self.text_worker.stop()
             self.text_worker.terminate()
             self.text_worker.wait(500)
+            self.text_translate_btn.setText("翻 译")
+            self.text_translate_btn.setEnabled(True)
         self.paths = []
         self.selected.clear()
         self.status_label.setText("")
@@ -776,7 +1051,7 @@ class MainWindow(QMainWindow):
             if self.text_worker is not None and self.text_worker.isRunning():
                 self.text_worker.stop()
                 self.text_worker.terminate()
-                self.text_worker.wait(2000)
+                self.text_worker.wait(1000)
             self.text_translate_btn.setText("翻 译")
             self.text_translate_btn.setEnabled(True)
             self.status_label.setText("翻译已停止")
@@ -800,6 +1075,7 @@ class MainWindow(QMainWindow):
         )
         self.text_worker.finished.connect(self._on_text_translated)
         self.text_worker.failed.connect(self._on_text_failed)
+        self.text_worker.progress.connect(self.status_label.setText)
         self.text_worker.start()
 
     def _on_text_translated(self, result):
@@ -814,6 +1090,63 @@ class MainWindow(QMainWindow):
         self.status_label.setText("翻译失败")
         logging.getLogger("file_toolbox").error("%s", message)
         QMessageBox.critical(self, "出错了", message)
+
+    def _trigger_text_translate(self):
+        if self.text_panel.isVisible():
+            self._toggle_text_translate()
+
+    def _clear_text_input(self):
+        self.text_input.clear()
+        self.text_input.setFocus()
+
+    def _save_text_as_word(self):
+        text = self.text_output.toPlainText()
+        if not text:
+            QMessageBox.information(self, "提示", "译文为空，无法保存。")
+            return
+        save_path, _ = QFileDialog.getSaveFileName(
+            self, "保存翻译结果", "", "Word 文档 (*.docx)"
+        )
+        if not save_path:
+            return
+        try:
+            from docx import Document
+            doc = Document()
+            doc.add_paragraph(text)
+            doc.save(save_path)
+            self.status_label.setText(f"已保存到: {save_path}")
+            QMessageBox.information(self, "保存完成", f"翻译结果已保存到：\n{save_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", f"保存 Word 失败：{e}")
+
+    def _copy_text_output(self):
+        text = self.text_output.toPlainText()
+        if text:
+            QApplication.clipboard().setText(text)
+            self.status_label.setText("译文已复制")
+        else:
+            self.status_label.setText("译文为空，无法复制")
+
+    def _swap_text_back(self):
+        output_text = self.text_output.toPlainText().strip()
+        if not output_text:
+            QMessageBox.information(self, "提示", "请先翻译内容再互换。")
+            return
+        src_code = self.source_combo.currentData()
+        if src_code == "auto":
+            QMessageBox.information(self, "提示", "自动识别模式下不能交换，请先选择源语言。")
+            return
+        self.text_input.setText(output_text)
+        src_idx = self.source_combo.currentIndex()
+        tgt_idx = self.target_combo.currentIndex()
+        self.source_combo.setCurrentIndex(tgt_idx)
+        self.target_combo.setCurrentIndex(src_idx)
+        self.text_output.clear()
+        self.status_label.setText("已互换，可以翻译回去了")
+
+    def _update_char_count(self):
+        count = len(self.text_input.toPlainText())
+        self.char_count_label.setText("字数: " + str(count))
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -917,7 +1250,7 @@ class MainWindow(QMainWindow):
         if self.worker is not None and self.worker.isRunning():
             self.worker.stop()
             self.worker.quit()
-            self.worker.wait(3000)
+            self.worker.wait(1000)
             self.start_button.setEnabled(True)
             self.start_button.setVisible(True)
             self.stop_button.setVisible(False)
@@ -927,7 +1260,7 @@ class MainWindow(QMainWindow):
         if self.text_worker is not None and self.text_worker.isRunning():
             self.text_worker.stop()
             self.text_worker.terminate()
-            self.text_worker.wait(2000)
+            self.text_worker.wait(1000)
             self.text_translate_btn.setText("翻 译")
             self.text_translate_btn.setEnabled(True)
             self.status_label.setText("翻译已停止")
@@ -1004,3 +1337,6 @@ def run_app():
     window = MainWindow(app)
     window.show()
     sys.exit(app.exec())
+
+
+

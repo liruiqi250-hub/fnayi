@@ -81,7 +81,11 @@ def organize_folder(
         target_dir = output_dir / category
         target_dir.mkdir(parents=True, exist_ok=True)
         name = source.name.replace(" ", "_") if replace_spaces else source.name
-        move(str(source), str(target_dir / name))
+        try:
+            move(str(source), str(target_dir / name))
+        except Exception as _e:
+            import logging
+            logging.getLogger("file_toolbox").warning("移动文件失败 %s: %s", source.name, _e)
         if progress_callback:
             progress_callback(idx, total)
     return output_dir

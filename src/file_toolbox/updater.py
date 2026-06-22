@@ -18,7 +18,9 @@ def _parse_version(version_str: str) -> tuple:
 
 
 def check_for_update(parent_widget=None, repo: str = "", silent: bool = False) -> None:
-    """Check GitHub Releases for updates."""
+    """Check GitHub Releases for updates.
+    silent=True: only log errors, no dialogs at all.
+    """
     if not repo:
         if not silent:
             QMessageBox.information(
@@ -27,7 +29,6 @@ def check_for_update(parent_widget=None, repo: str = "", silent: bool = False) -
             )
         return
 
-    current = __version__
     logger = logging.getLogger("file_toolbox")
     api_url = f"https://api.github.com/repos/{repo}/releases/latest"
 
@@ -35,7 +36,7 @@ def check_for_update(parent_widget=None, repo: str = "", silent: bool = False) -
         req = urllib.request.Request(
             api_url,
             headers={
-                "User-Agent": "FileTranslator/" + current,
+                "User-Agent": "FileTranslator/" + __version__,
                 "Accept": "application/json",
             },
         )
@@ -47,17 +48,16 @@ def check_for_update(parent_widget=None, repo: str = "", silent: bool = False) -
         body = data.get("body", "")
 
         if not latest_tag:
-            QMessageBox.information(parent_widget, "检查更新", "无法获取版本信息。")
             return
 
         latest_parsed = _parse_version(latest_tag)
-        current_parsed = _parse_version(current)
+        current_parsed = _parse_version(__version__)
 
         if latest_parsed > current_parsed:
             notes = body[:500] + "..." if len(body) > 500 else body
             msg = (
                 f"发现新版本 v{latest_tag}\n\n"
-                f"当前版本：v{current}\n"
+                f"当前版本：v{__version__}\n"
                 f"最新版本：v{latest_tag}\n\n"
                 f"更新内容：\n{notes}\n\n"
                 f"是否前往下载？"
@@ -69,16 +69,33 @@ def check_for_update(parent_widget=None, repo: str = "", silent: bool = False) -
             if reply == QMessageBox.Yes and download_url:
                 webbrowser.open(download_url)
         else:
-            QMessageBox.information(
-                parent_widget, "检查更新", f"当前已是最新版本（v{current}）。"
-            )
+            if not silent:
+                QMessageBox.information(
+                    parent_widget, "检查更新", f"当前已是最新版本（v{__version__}）。"
+                )
 
     except urllib.error.HTTPError as e:
         logger.warning("Update check HTTP error: %s", e)
-        msg = "检查更新失败" + (
-            "：仓库不存在或没有 Release" if e.code == 404 else f"：HTTP {e.code}"
-        )
-        QMessageBox.warning(parent_widget, "检查更新", msg + "\n请检查仓库名设置。")
+        if not silent:
+            msg = "检查更新失败" + (
+                "：仓库不存在或没有 Release" if e.code == 404 else f"：HTTP {e.code}"
+            )
+            QMessageBox.warning(parent_widget, "检查更新", msg + "\n请检查仓库名设置。")
     except Exception as e:
         logger.warning("Update check failed: %s", e)
-        QMessageBox.warning(parent_widget, "检查更新", f"检查更新失败：{e}\n请检查网络连接。")
+        if not silent:
+            QMessageBox.warning(parent_widget, "检查更新", f"检查更新失败：{e}\n请检查网络连接。")
+
+
+def fetch_release_notes(repo: str) -> str:
+    """Fetch the latest release body text. Returns empty string on failure."""
+    try:
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{repo}/releases/latest",
+            headers={"User-Agent": "FileTranslator", "Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        return data.get("body", "")
+    except Exception:
+        return ""
